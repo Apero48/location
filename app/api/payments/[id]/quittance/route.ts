@@ -4,12 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentLandlord, unauthorizedResponse } from "@/lib/auth";
 
 // GET /api/payments/:id/quittance — génère et renvoie le PDF de la quittance
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const landlord = await getCurrentLandlord(req);
   if (!landlord) return unauthorizedResponse();
 
+  const { id } = await params;
+
   const payment = await prisma.payment.findFirst({
-    where: { id: params.id, tenant: { property: { landlordId: landlord.id } } },
+    where: { id, tenant: { property: { landlordId: landlord.id } } },
     include: { tenant: { include: { property: true } } },
   });
 
