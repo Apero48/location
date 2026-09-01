@@ -60,7 +60,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const pdfBytes = await pdfDoc.save();
 
-  return new Response(pdfBytes, {
+  return new Response(Buffer.from(pdfBytes), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="quittance-${payment.mois.replace(" ", "-")}.pdf"`,
