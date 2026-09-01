@@ -1,0 +1,108 @@
+// Schéma de base de données pour LocaBénin (SaaS de gestion locative)
+// Documentation Prisma: https://www.prisma.io/docs
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------------
+// Un Landlord = un compte abonné (propriétaire ou agence).
+// Toutes les données sont rattachées à un landlordId pour l'isolation
+// multi-tenant (chaque client ne voit que ses propres données).
+// ------------------------------------------------------------------
+model Landlord {
+  id           String     @id @default(cuid())
+  nom          String
+  email        String     @unique
+  passwordHash String
+  telephone    String?
+  plan         Plan       @default(GRATUIT)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  properties   Property[]
+
+  @@map("landlords")
+}
+
+enum Plan {
+  GRATUIT   // jusqu'à 3 logements
+  STANDARD  // jusqu'à 15 logements
+  AGENCE    // illimité
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  nom         String
+  adresse     String?
+  loyer       Int      // montant du loyer mensuel en FCFA
+  landlordId  String
+  landlord    Landlord @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  tenants     Tenant[]
+
+  @@index([landlordId])
+  @@map("properties")
+}
+
+model Tenant {
+  id          String       @id @default(cuid())
+  nom         String
+  telephone   String
+  telephoneMomo String?    // numéro Mobile Money, si différent du téléphone de contact
+  email       String?
+  statut      TenantStatut @default(ACTIF)
+  jourEcheance Int         @default(5) // jour du mois où le loyer est attendu
+  dernierRappel DateTime?  // évite de relancer plusieurs fois le même jour
+  propertyId  String
+  property    Property     @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  payments    Payment[]
+
+  @@index([propertyId])
+  @@map("tenants")
+}
+
+enum TenantStatut {
+  ACTIF
+  RETARD
+  PARTI
+}
+
+model Payment {
+  id          String        @id @default(cuid())
+  montant     Int           // en FCFA
+  mois        String        // ex: "Août 2026"
+  datePaiement DateTime     @default(now())
+  methode     PaymentMethode
+  statut      PaymentStatut @default(CONFIRME) // CONFIRME par défaut pour les saisies manuelles (espèces/virement)
+  reference   String?       @unique // référence de transaction Mobile Money (X-Reference-Id MTN MoMo)
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdAt   DateTime      @default(now())
+
+  @@index([tenantId])
+  @@map("payments")
+}
+
+enum PaymentStatut {
+  EN_ATTENTE // requête envoyée au locataire, en attente de confirmation Mobile Money
+  CONFIRME
+  ECHOUE
+}
+
+enum PaymentMethode {
+  MTN_MOMO
+  MOOV_MONEY
+  ESPECES
+  VIREMENT
+}

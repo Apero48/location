@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/check-retards?token=b70c541b1744309cf7c2c6c4613921fc2f5471c1a7c44669",
+      "schedule": "0 6 * * *"
+    }
+  ]
+}
