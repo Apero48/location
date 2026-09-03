@@ -2,6 +2,13 @@ import { Providers } from "./providers";
 
 export const metadata = {
   title: "LocaBénin — Gestion locative",
+  metadataBase: new URL(
+    process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.trim() !== ""
+      ? process.env.NEXTAUTH_URL
+      : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000"
+  ),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
